@@ -18,7 +18,9 @@ const app = express();
 
 // Middlewarss
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: '*',
+  }));
 app.use(xss());
 app.use(hpp());
 app.use(helmet());
