@@ -4,7 +4,11 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon app"
+    "dev": "nodemon app",
+    "start": "node app.js"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "author": "dev-ali-nadhum",
   "license": "ISC",
