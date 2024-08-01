@@ -1,35 +1,15 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "app.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/category/(.*)",
-      "dest": "/category/$1"
-    },
-    {
-      "src": "/subcategory/(.*)",
-      "dest": "/subcategory/$1"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/auth/$1"
-    },
-    {
-      "src": "/notice/(.*)",
-      "dest": "/notice/$1"
-    },
-    {
-      "src": "/work/(.*)",
-      "dest": "/work/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
-}
+    "version":2,
+    "builds": [
+      {
+        "src": "./index.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "/"
+      }
+    ]
+  }
