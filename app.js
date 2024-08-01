@@ -32,11 +32,11 @@ app.use(rateLimiting({
 
 
 // Routes
-app.use("/api/category" , require("./routes/categoryRouts"));
-app.use("/api/subcategory" , require("./routes/subCategoryRoutes"));
-app.use("/api/auth" , require("./routes/authRoutes"));
-app.use("/api/notice" , require("./routes/noticeRoutes"));
-app.use("/api/work" , require("./routes/workRoutes"));
+app.use("/category" , require("./routes/categoryRouts"));
+app.use("/subcategory" , require("./routes/subCategoryRoutes"));
+app.use("/auth" , require("./routes/authRoutes"));
+app.use("/notice" , require("./routes/noticeRoutes"));
+app.use("/work" , require("./routes/workRoutes"));
 
 
 // Run Server
