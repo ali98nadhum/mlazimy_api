@@ -1,9 +1,13 @@
 const asyncHandler = require("express-async-handler");
-const {WorkModel , validateCreateWork, validateUpdateWork} = require("../models/Work");
-const fs = require("fs");
-const {cloudinaryUploadImage , cloudinaryDeleteImage} = require("../utils/cloudinary");
-const path = require("path");
-
+const {
+  WorkModel,
+  validateCreateWork,
+  validateUpdateWork,
+} = require("../models/Work");
+const {
+  cloudinaryUploadImage,
+  cloudinaryDeleteImage,
+} = require("../utils/cloudinary");
 
 // ==================================
 // @desc Get all work
@@ -18,13 +22,12 @@ module.exports.getAllWork = asyncHandler(async (req, res) => {
   const works = await WorkModel.find({}).skip(skip).limit(limit);
   const totalCount = await WorkModel.countDocuments();
   res.status(200).json({
-    results: works.length, 
-    totalResults: totalCount, 
-    page: page, 
-    data: works
+    results: works.length,
+    totalResults: totalCount,
+    page: page,
+    data: works,
   });
 });
-
 
 // ==================================
 // @desc Get work by id
@@ -35,14 +38,13 @@ module.exports.getAllWork = asyncHandler(async (req, res) => {
 module.exports.getOneWork = asyncHandler(async (req, res) => {
   const work = await WorkModel.findById(req.params.id);
   if (!work) {
-    return res.status(404).json({ message: "هذا الفرصه غير متوفره او تم حذفها" });
+    return res
+      .status(404)
+      .json({ message: "هذا الفرصه غير متوفره او تم حذفها" });
   }
 
   res.status(200).json({ data: work });
 });
-
-
-
 
 // ==================================
 // @desc Creat new work
@@ -59,32 +61,31 @@ module.exports.createNewWork = asyncHandler(async (req, res) => {
   // validtion input data
   const { error } = validateCreateWork(req.body);
   if (error) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    fs.unlinkSync(imagePath);
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  // upload image
-  const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-  const result = await cloudinaryUploadImage(imagePath);
+  try {
+    const result = await cloudinaryUploadImage(
+      req.file.buffer,
+      req.file.originalname
+    );
+    // save category to DB
+    const work = await WorkModel.create({
+      title: req.body.title,
+      description: req.body.description,
+      link: req.body.link,
+      image: {
+        url: result.secure_url,
+        publicId: result.public_id,
+      },
+    });
 
-  // save category to DB
-  const work = await WorkModel.create({
-    title: req.body.title,
-    description: req.body.description,
-    link: req.body.link,
-    image: {
-      url: result.secure_url,
-      publicId: result.public_id,
-    },
-  });
-
-  res.status(201).json({ message: "تم اضافه الفرصه بنجاح"  , work});
-  // remove image form local server
-  fs.unlinkSync(imagePath);
+    // send res to user
+    res.status(201).json({ message: "تم اضافه الفرصه بنجاح", work });
+  } catch (error) {
+    res.status(500).json({ message: "فشل رفع الصورة إلى Cloudinary" });
+  }
 });
-
-
 
 // ==================================
 // @desc Update work
@@ -105,20 +106,22 @@ module.exports.updateWork = asyncHandler(async (req, res) => {
     updateData.title = req.body.title;
   }
 
-//   update des
-if(req.body.description){
+  //   update des
+  if (req.body.description) {
     updateData.description = req.body.description;
-}
+  }
 
-// update link
-if(req.body.link){
+  // update link
+  if (req.body.link) {
     updateData.link = req.body.link;
-}
+  }
 
   // update category image
   if (req.file) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    const result = await cloudinaryUploadImage(imagePath);
+    const result = await cloudinaryUploadImage(
+      req.file.buffer,
+      req.file.originalname
+    );
     updateData.image = {
       url: result.secure_url,
       publicId: result.public_id,
@@ -129,9 +132,6 @@ if(req.body.link){
     if (work.image.publicId !== null) {
       await cloudinaryDeleteImage(work.image.publicId);
     }
-
-    // delete image from local server
-    fs.unlinkSync(imagePath);
   }
 
   // update category in DB
@@ -145,8 +145,6 @@ if(req.body.link){
   res.status(200).json(updatedWork);
 });
 
-
-
 // ==================================
 // @desc Delete work
 // @route /api/work/:id
@@ -157,7 +155,9 @@ module.exports.deleteWork = asyncHandler(async (req, res) => {
   // get work from DB
   const work = await WorkModel.findById(req.params.id);
   if (!work) {
-    return res.status(404).json({ message: "هذا الفرصه غير موجوده او تم حذفها" });
+    return res
+      .status(404)
+      .json({ message: "هذا الفرصه غير موجوده او تم حذفها" });
   }
 
   // delete image form cloudnary

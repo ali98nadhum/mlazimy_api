@@ -17,6 +17,7 @@ connectToDB();
 const app = express();
 
 // Middlewarss
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors({
     origin: '*',

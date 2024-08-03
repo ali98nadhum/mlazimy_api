@@ -1,23 +1,9 @@
-const path = require("path");
 const multer = require("multer");
 
-// photo storeage
-const photoStoreage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../images"));
-  },
-  filename: function (req, file, cb) {
-    if (file) {
-      cb(null, new Date().toISOString().replace(/:/g, "-") + file.originalname);
-    } else {
-      cb(null, false);
-    }
-  },
-});
+const photoStorage = multer.memoryStorage();
 
-// photo upload middleware
 const photoUpload = multer({
-  storage: photoStoreage,
+  storage: photoStorage,
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith("image")) {
       cb(null, true);
@@ -25,7 +11,7 @@ const photoUpload = multer({
       cb({ message: "الملف غير مدعوم" }, false);
     }
   },
-  limits: { fileSize: 1024 * 1024 * 2 },
+  limits: { fileSize: 1024 * 1024 * 2 }, // الحد الأقصى لحجم الملف: 2 ميجابايت
 });
 
 module.exports = photoUpload;

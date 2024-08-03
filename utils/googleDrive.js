@@ -1,5 +1,6 @@
-const fs = require("fs");
+
 const { google } = require("googleapis");
+const { Readable } = require('stream');
 
 // This line is const
 const SCOPE = ["https://www.googleapis.com/auth/drive"];
@@ -24,21 +25,23 @@ async function uploadFile(authClient, file) {
   return new Promise((resolve, reject) => {
     const drive = google.drive({ version: "v3", auth: authClient });
 
-    let fileMetaData = {
-      name: file.filename,
-      parents: ["1_O5SK7R97aNCwsdKjwAjU2AZuOz5JqZR"],
+    const fileMetaData = {
+      name: file.originalname, // اسم الملف
+      parents: ["1_O5SK7R97aNCwsdKjwAjU2AZuOz5JqZR"], // معرف المجلد
+    };
+
+    const media = {
+      mimeType: file.mimetype,
+      body: Readable.from(file.buffer), 
     };
 
     drive.files.create(
       {
         resource: fileMetaData,
-        media: {
-          body: fs.createReadStream(file.path),
-          mimeType: "application/pdf",
-        },
+        media: media,
         fields: "id, name, size, parents",
       },
-      function (error, fileData) {
+      (error, fileData) => {
         if (error) {
           console.error("Error uploading file to Google Drive:", error);
           return reject(error);
@@ -73,7 +76,6 @@ async function generatePublicUrl(authClient, fileId) {
     publicId: fileId,
   };
 }
-
 // =====================================================
 // This function for deleting a file from Google Drive
 async function deleteFile(authClient, fileId) {
@@ -92,7 +94,7 @@ async function deleteFile(authClient, fileId) {
 
 // =====================================================
 // Function to handle the file upload process
-async function uploadsFile(req, res, testPath) {
+async function uploadsFile(req, res) {
   try {
     const authClient = await authorize();
 
@@ -103,7 +105,7 @@ async function uploadsFile(req, res, testPath) {
     return {
       fileDetails: file,
       fileLinks: fileLinks,
-      id: file.id, // Add this line to include the file ID
+      id: file.id,
     };
   } catch (error) {
     console.error("An error occurred:", error);

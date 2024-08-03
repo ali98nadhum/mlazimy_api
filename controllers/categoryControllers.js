@@ -1,11 +1,9 @@
 const asyncHandler = require("express-async-handler");
-const path = require("path");
 const {
   CategoryModel,
   VaildateCreatCategory,
   VaildateUpdateCategory,
 } = require("../models/Category");
-const fs = require("fs");
 const {
   cloudinaryUploadImage,
   cloudinaryDeleteImage,
@@ -70,8 +68,6 @@ module.exports.createNewCategory = asyncHandler(async (req, res) => {
   // validtion input data
   const { error } = VaildateCreatCategory(req.body);
   if (error) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    fs.unlinkSync(imagePath);
     return res.status(400).json({ message: error.details[0].message });
   }
 
@@ -80,30 +76,28 @@ module.exports.createNewCategory = asyncHandler(async (req, res) => {
     title: req.body.title,
   });
   if (existingCategory) {
-    fs.unlinkSync(req.file.path);
     return res
       .status(400)
       .json({ message: "اسم الماده موجود بالفعل. يرجى اختيار اسم مختلف." });
   }
 
-  // Upload image
-  const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-  const result = await cloudinaryUploadImage(imagePath);
+  try {
+    const result = await cloudinaryUploadImage(req.file.buffer, req.file.originalname);
 
-  // save category to DB
-  const category = await CategoryModel.create({
-    title: req.body.title,
-    image: {
-      url: result.secure_url,
-      publicId: result.public_id,
-    },
-  });
+    // Save categor in DB
+    const category = await CategoryModel.create({
+      title: req.body.title,
+      image: {
+        url: result.secure_url,
+        publicId: result.public_id,
+      },
+    });
 
-  // send res to client
-  res.status(201).json({ message: "تم اضافه الماده بنجاح" });
-
-  // Remov image from local server
-  fs.unlinkSync(imagePath);
+    // send res to user
+    res.status(201).json({ message: "تم اضافه الماده بنجاح" });
+  } catch (error) {
+    res.status(500).json({ message: "فشل رفع الصورة إلى Cloudinary" });
+  }
 });
 
 
@@ -115,7 +109,7 @@ module.exports.createNewCategory = asyncHandler(async (req, res) => {
 // @access private (only admin)
 // ==================================
 module.exports.updateCategory = asyncHandler(async (req, res) => {
-  // vaildation input data from user
+  // validation input data from user
   const { error } = VaildateUpdateCategory(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
@@ -127,22 +121,21 @@ module.exports.updateCategory = asyncHandler(async (req, res) => {
     updateData.title = req.body.title;
   }
 
-  // update category image
+  // update category image if a new file is uploaded
   if (req.file) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    const result = await cloudinaryUploadImage(imagePath);
+    const result = await cloudinaryUploadImage(req.file.buffer, req.file.originalname);
     updateData.image = {
       url: result.secure_url,
       publicId: result.public_id,
     };
-    // delete the old image if found
+
+    // Delete the old image if found
     const category = await CategoryModel.findById(req.params.id);
-    if (category.image.publicId !== null) {
+    if (category && category.image && category.image.publicId) {
       await cloudinaryDeleteImage(category.image.publicId);
     }
-    // delete image from local server
-    fs.unlinkSync(imagePath);
   }
+
   // update category in DB
   const updatedCategory = await CategoryModel.findByIdAndUpdate(
     req.params.id,
@@ -150,7 +143,7 @@ module.exports.updateCategory = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  // send res from user
+  // send response to user
   res.status(200).json(updatedCategory);
 });
 

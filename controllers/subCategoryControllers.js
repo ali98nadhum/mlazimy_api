@@ -4,12 +4,12 @@ const {
   validateCreateSubcategory,
   validateUpdateSubcategory,
 } = require("../models/SubCategory");
-const fs = require("fs");
 const { CategoryModel } = require("../models/Category");
-const { cloudinaryUploadImage, cloudinaryDeleteImage } = require("../utils/cloudinary");
 const {uploadsFile , deleteFile , authorize} = require("../utils/googleDrive")
-const path = require("path");
-
+const {
+  cloudinaryUploadImage,
+  cloudinaryDeleteImage,
+} = require("../utils/cloudinary");
 
 
 // ==================================
@@ -53,27 +53,17 @@ module.exports.getOneSubcategory = asyncHandler(async (req , res) => {
 module.exports.createSubcategory = asyncHandler(async (req, res) => {
   // validtion if not found image
   if (!req.files || !req.files.image || !req.files.image[0]) {
-    const filePath = path.join(__dirname,`../files/${req.files.file[0].filename}`);
-    fs.unlinkSync(filePath);
-    return res.status(400).json({ message: "لم تتم اضافه صوره للمحاضره" });
+    return res.status(400).json({ message: "لم يتم إضافة صورة للمحاضرة" });
   }
 
-  // validtion if not found pdf file
+ // validtion if not found pdf file
   if (!req.files || !req.files.file || !req.files.file[0]) {
-    if (req.files.image) {
-      const imagePath = path.join(__dirname,`../images/${req.files.image[0].filename}`);
-      fs.unlinkSync(imagePath);
-    }
-    return res.status(400).json({ message: "لم تتم اضافه محاضره" });
+    return res.status(400).json({ message: "لم يتم إضافة محاضرة" });
   }
 
-  // vaildtion input data
+   // vaildtion input data
   const { error } = validateCreateSubcategory(req.body);
   if (error) {
-    const imagePath = path.join(__dirname,`../images/${req.files.image[0].filename}`);
-    const filePath = path.join(__dirname,`../files/${req.files.file[0].filename}`);
-    fs.unlinkSync(imagePath);
-    fs.unlinkSync(filePath);
     return res.status(400).json({ message: error.details[0].message });
   }
 
@@ -82,53 +72,44 @@ module.exports.createSubcategory = asyncHandler(async (req, res) => {
     title: req.body.title,
   });
   if (existingSubcategory) {
-    const imagePath = path.join(__dirname,`../images/${req.files.image[0].filename}`);
-    const filePath = path.join(__dirname,`../files/${req.files.file[0].filename}`);
-    fs.unlinkSync(imagePath);
-    fs.unlinkSync(filePath);
-    return res
-      .status(400)
-      .json({ message: "اسم المحاضره موجود بالفعل. يرجى اختيار اسم مختلف." });
+    return res.status(400).json({ message: "اسم المحاضرة موجود بالفعل. يرجى اختيار اسم مختلف." });
   }
-
 
   // Check if category exists in the database
   const categoryExists = await CategoryModel.findById(req.body.category);
   if (!categoryExists) {
-    return res
-      .status(400)
-      .json({ message: "هذا الماده غير موجوده او تم مسحها" });
+    return res.status(400).json({ message: "هذه المادة غير موجودة أو تم حذفها" });
   }
 
-  // upload image
-  const imagePath = path.join( __dirname,`../images/${req.files.image[0].filename}`);
-  const result = await cloudinaryUploadImage(imagePath);
+  try {
+    // Upload image to Cloudinary
+    const uploadedImage = await cloudinaryUploadImage(req.files.image[0].buffer, req.files.image[0].originalname);
 
-  // upload file
-  const filePath = path.join(__dirname,`../files/${req.files.file[0].filename}`);
-  const fileResult = await uploadsFile(req, res, filePath);
+    // upload file to Google Drive
+    const uploadFile = await uploadsFile(req , res)
 
-  //   save subcategory in DB
-  const subcategory = await subCategorysModel.create({
-    title: req.body.title,
-    description: req.body.description,
-    category: req.body.category,
-    image: {
-      url: result.secure_url,
-      publicId: result.public_id,
-    },
-    file: {
-      webViewLink: fileResult.fileLinks.webViewLink,
-      webContentLink: fileResult.fileLinks.webContentLink,
-      publicId: fileResult.fileLinks.publicId,
-    },
-  });
-  res.status(201).json({ data: subcategory, message: "تم اضافه المحاضره بنجاح" });
-
-  // remove image form local server
-  fs.unlinkSync(imagePath);
-  fs.unlinkSync(filePath);
+    // save subcategory in DB
+    const subcategory = await subCategorysModel.create({
+      title: req.body.title,
+      description: req.body.description,
+      category: req.body.category,
+      image: {
+        url: uploadedImage.secure_url,
+        publicId: uploadedImage.public_id,
+      },
+      file: {
+        webViewLink: uploadFile.fileLinks.webViewLink,
+        webContentLink: uploadFile.fileLinks.webContentLink,
+        publicId: uploadFile.fileLinks.publicId,
+      },
+    });
+    res.status(201).json({ data: subcategory, message: "تم إضافة المحاضرة بنجاح" });
+  } catch (error) {
+    console.error("An error occurred:", error);
+    res.status(500).json({ message: "حدث خطأ أثناء إضافة المحاضرة", error: error.message });
+  }
 });
+
 
 // ==================================
 // @desc Update subcategory
@@ -140,10 +121,6 @@ module.exports.updateSubcategory = asyncHandler(async(req , res) =>{
   // vaildation input data from user
   const { error } = validateUpdateSubcategory(req.body);
   if (error) {
-    if (req.file) {
-      const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-      fs.unlinkSync(imagePath);
-    }
     return res.status(400).json({ message: error.details[0].message });
   }
 
@@ -153,7 +130,7 @@ module.exports.updateSubcategory = asyncHandler(async(req , res) =>{
     updateData.title = req.body.title;
   }
 
-  // updaye description
+  // update description
   if(req.body.description){
     updateData.description = req.body.description;
   }
@@ -169,11 +146,10 @@ module.exports.updateSubcategory = asyncHandler(async(req , res) =>{
 
   // update subcategory image
   if (req.file) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    const result = await cloudinaryUploadImage(imagePath);
+    const uploadedImage = await cloudinaryUploadImage(req.file.buffer, req.file.originalname);
     updateData.image = {
-      url: result.secure_url,
-      publicId: result.public_id,
+      url: uploadedImage.secure_url,
+      publicId: uploadedImage.public_id,
     };
 
     // delete the old image if found
@@ -181,8 +157,6 @@ module.exports.updateSubcategory = asyncHandler(async(req , res) =>{
     if (subcategory.image.publicId !== null) {
       await cloudinaryDeleteImage(subcategory.image.publicId);
     }
-    // delete image from local server
-    fs.unlinkSync(imagePath);
   }
   // update category in DB
   const updatedCategory = await subCategorysModel.findByIdAndUpdate(
