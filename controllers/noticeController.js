@@ -95,13 +95,13 @@ module.exports.verifieCode = asyncHandler(async(req , res) => {
 
 // ==================================
 // @desc Get all users
-// @route /api/notice
+// @route /notice
 // @method GET
 // @access private (only admin)
 // ==================================
 module.exports.getAllUsers = asyncHandler(async(req , res) => {
     const users = await NoticeModel.find({})
-    res.status(200).json({results:users.length});
+    res.status(200).json({data:users});
 })
 
 
