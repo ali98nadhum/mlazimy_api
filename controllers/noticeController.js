@@ -100,11 +100,8 @@ module.exports.verifieCode = asyncHandler(async(req , res) => {
 // @access private (only admin)
 // ==================================
 module.exports.getAllUsers = asyncHandler(async(req , res) => {
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 6 || 6;
-    const skip = (page-1) * limit;
-    const users = await NoticeModel.find({}).skip(skip).limit(limit);
-    res.status(200).json({results:users.length , page , data:users});
+    const users = await NoticeModel.find({})
+    res.status(200).json({results:users.length});
 })
 
 
