@@ -31,25 +31,54 @@ module.exports.getAllCategorys = asyncHandler(async (req, res) => {
 // @method GET
 // @access public
 // ==================================
+// module.exports.getOneCategory = asyncHandler(async (req, res) => {
+//   const page = req.query.page * 1 || 1; 
+//   const limit = req.query.limit * 1 || 6; 
+//   const skip = (page - 1) * limit;
+
+//   const category = await CategoryModel.findById(req.params.id);
+//   if (!category) {
+//     return res.status(404).json({ message: "لا توجد ماده لهذا المعرف" });
+//   }
+
+//   const subcategories = await subCategorysModel
+//     .find({ category: req.params.id })
+//     .skip(skip)
+//     .limit(limit);
+
+//   const totalSubcategories = await subCategorysModel.countDocuments({ category: req.params.id });
+
+//   res.status(200).json({ data: category, subcategories, total: totalSubcategories });
+// });
 module.exports.getOneCategory = asyncHandler(async (req, res) => {
   const page = req.query.page * 1 || 1; 
   const limit = req.query.limit * 1 || 6; 
   const skip = (page - 1) * limit;
 
+  // استرجاع الفئة الرئيسية من قاعدة البيانات
   const category = await CategoryModel.findById(req.params.id);
   if (!category) {
     return res.status(404).json({ message: "لا توجد ماده لهذا المعرف" });
   }
 
+  // إعداد شرط البحث في الأقسام الفرعية
+  const searchQuery = req.query.search ? {
+    title: { $regex: req.query.search, $options: 'i' },
+    category: req.params.id
+  } : { category: req.params.id };
+
+  // جلب الأقسام الفرعية من قاعدة البيانات مع إمكانية البحث
   const subcategories = await subCategorysModel
-    .find({ category: req.params.id })
+    .find(searchQuery)
     .skip(skip)
     .limit(limit);
 
-  const totalSubcategories = await subCategorysModel.countDocuments({ category: req.params.id });
+  // حساب العدد الكلي للأقسام الفرعية
+  const totalSubcategories = await subCategorysModel.countDocuments(searchQuery);
 
   res.status(200).json({ data: category, subcategories, total: totalSubcategories });
 });
+
 
 
 
