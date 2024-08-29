@@ -99,10 +99,17 @@ module.exports.verifieCode = asyncHandler(async(req , res) => {
 // @method GET
 // @access private (only admin)
 // ==================================
-module.exports.getAllUsers = asyncHandler(async(req , res) => {
-    const users = await NoticeModel.find({})
-    res.status(200).json({data:users});
-})
+module.exports.getAllUsers = asyncHandler(async (req, res) => {
+    const { class: userClass } = req.query;
+    let filter = {};
+  
+    if (userClass) {
+      filter.class = userClass;
+    }
+  
+    const users = await NoticeModel.find(filter);
+    res.status(200).json({ data: users });
+  });
 
 
 // ==================================

@@ -55,25 +55,27 @@ module.exports.getOneCategory = asyncHandler(async (req, res) => {
   const limit = req.query.limit * 1 || 6; 
   const skip = (page - 1) * limit;
 
-  // استرجاع الفئة الرئيسية من قاعدة البيانات
+  // Get category from Database
   const category = await CategoryModel.findById(req.params.id);
   if (!category) {
     return res.status(404).json({ message: "لا توجد ماده لهذا المعرف" });
   }
 
-  // إعداد شرط البحث في الأقسام الفرعية
+
+  // make search query
   const searchQuery = req.query.search ? {
     title: { $regex: req.query.search, $options: 'i' },
     category: req.params.id
   } : { category: req.params.id };
 
-  // جلب الأقسام الفرعية من قاعدة البيانات مع إمكانية البحث
+
+  // Get subcategory from Database and can search for it
   const subcategories = await subCategorysModel
     .find(searchQuery)
     .skip(skip)
     .limit(limit);
 
-  // حساب العدد الكلي للأقسام الفرعية
+  // subcategory count 
   const totalSubcategories = await subCategorysModel.countDocuments(searchQuery);
 
   res.status(200).json({ data: category, subcategories, total: totalSubcategories });
