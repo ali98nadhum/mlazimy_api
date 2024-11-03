@@ -23,7 +23,8 @@ module.exports.getAllSubcategory = asyncHandler(async (req, res) => {
     const limit = req.query.limit * 6 || 6;
     const skip = (page-1) * limit;
   const subCategory = await subCategorysModel.find({}).skip(skip).limit(limit);
-  res.status(200).json({results:subCategory.length , page , data:subCategory});
+  const totalSubcategoury = await subCategorysModel.countDocuments();
+  res.status(200).json({results:totalSubcategoury , page , data:subCategory});
 });
 
 
